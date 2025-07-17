@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { auth, db } from "./firebase";
 import { collection, addDoc, serverTimestamp, query, where, getDocs, doc, updateDoc, getDoc } from "firebase/firestore";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 const imgbbApiKey = "3a3b4f7326b95706e68ed90e472dbd31"; // Your imgbb API key
 
@@ -18,11 +19,13 @@ const FishermanDashboard = () => {
   const [error, setError] = useState("");
   const [uploading, setUploading] = useState(false);
 
+  // For displaying past catches
   const [myCatches, setMyCatches] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  // For showing customer names
   const [usernames, setUsernames] = useState({});
+
+  // For counter-offer form
+  const [counterOffer, setCounterOffer] = useState({});
 
   const handleLogout = () => {
     auth.signOut();
@@ -94,33 +97,13 @@ const FishermanDashboard = () => {
       setPrice("");
       setFreshness({ eyeClarity: "", gillColor: "", smell: "" });
       setPhoto(null);
+      fetchMyCatches(); // Refresh the list
     } catch (err) {
       setError("Failed to upload catch: " + err.message);
     } finally {
       setUploading(false);
     }
   };
-
-  // Fetch all catches uploaded by this fisherman
-  useEffect(() => {
-    const fetchMyCatches = async () => {
-      setLoading(true);
-      try {
-        const q = query(collection(db, "catches"), where("fishermanId", "==", auth.currentUser.uid));
-        const querySnapshot = await getDocs(q);
-        const catchList = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setMyCatches(catchList);
-      } catch (err) {
-        setMyCatches([]);
-      }
-      setLoading(false);
-    };
-
-    fetchMyCatches();
-  }, []);
 
   // Fetch usernames for all relevant user IDs
   const fetchUsernames = async (userIds) => {
@@ -138,54 +121,100 @@ const FishermanDashboard = () => {
     setUsernames(prev => ({ ...prev, ...names }));
   };
 
+  // Fetch all catches uploaded by this fisherman
   useEffect(() => {
-    // After fetching catches, get all user IDs for orders and bargains
-    const userIds = [];
-    myCatches.forEach(catchItem => {
-      if (catchItem.orderedBy) userIds.push(catchItem.orderedBy);
-      if (catchItem.bargainRequest?.requestedBy) userIds.push(catchItem.bargainRequest.requestedBy);
-    });
-    fetchUsernames([...new Set(userIds)]);
-    // eslint-disable-next-line
-  }, [myCatches]);
+    const fetchMyCatches = async () => {
+      setLoading(true);
+      try {
+        const q = query(collection(db, "catches"), where("fishermanId", "==", auth.currentUser.uid));
+        const querySnapshot = await getDocs(q);
+        const catchList = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setMyCatches(catchList);
+
+        // Get all user IDs for orders and bargains
+        const userIds = [];
+        catchList.forEach(catchItem => {
+          if (catchItem.orderedBy) userIds.push(catchItem.orderedBy);
+          if (catchItem.bargainRequest?.requestedBy) userIds.push(catchItem.bargainRequest.requestedBy);
+        });
+        fetchUsernames([...new Set(userIds)]);
+      } catch (err) {
+        setMyCatches([]);
+      }
+      setLoading(false);
+    };
+
+    fetchMyCatches();
+  }, []);
 
   // Accept the bargain offer
   const handleAcceptBargain = async (catchId, bargainPrice) => {
-    await updateDoc(doc(db, "catches", catchId), {
-      price: bargainPrice,
-      bargainRequest: null,
-    });
-    window.location.reload();
+    try {
+      await updateDoc(doc(db, "catches", catchId), {
+        price: bargainPrice,
+        bargainRequest: null,
+        negotiationStatus: "accepted",
+      });
+      fetchMyCatches(); // Refresh the list
+    } catch (err) {
+      alert("Failed to accept bargain: " + err.message);
+    }
   };
 
   // Counter offer logic
-  const [counterOffer, setCounterOffer] = useState({});
   const handleCounterOffer = (catchId) => {
     setCounterOffer({ ...counterOffer, [catchId]: "" });
   };
+
   const handleCounterOfferChange = (catchId, value) => {
     setCounterOffer({ ...counterOffer, [catchId]: value });
   };
+
   const submitCounterOffer = async (catchId) => {
     const price = counterOffer[catchId];
     if (!price || isNaN(price) || Number(price) <= 0) {
       alert("Enter a valid price.");
       return;
     }
-    await updateDoc(doc(db, "catches", catchId), {
-      counterOffer: {
-        price,
-        fishermanId: auth.currentUser.uid,
-      },
-    });
-    setCounterOffer({ ...counterOffer, [catchId]: "" });
-    window.location.reload();
+    try {
+      await updateDoc(doc(db, "catches", catchId), {
+        counterOffer: {
+          price,
+          fishermanId: auth.currentUser.uid,
+        },
+        bargainRequest: null, // Clear the bargain request
+        negotiationStatus: "open",
+      });
+      setCounterOffer({ ...counterOffer, [catchId]: "" });
+      fetchMyCatches(); // Refresh the list
+    } catch (err) {
+      alert("Failed to send counter-offer: " + err.message);
+    }
+  };
+
+  // Deny negotiation
+  const handleDenyNegotiation = async (catchId) => {
+    try {
+      await updateDoc(doc(db, "catches", catchId), {
+        bargainRequest: null,
+        counterOffer: null,
+        negotiationStatus: "denied",
+      });
+      fetchMyCatches(); // Refresh the list
+    } catch (err) {
+      alert("Failed to deny negotiation: " + err.message);
+    }
   };
 
   return (
     <div>
       <h2>Welcome, Fisherman!</h2>
       <button onClick={handleLogout}>Logout</button>
+      
+      {/* Upload Form */}
       <h3>Upload a New Catch</h3>
       <form onSubmit={handleSubmit}>
         <input
@@ -248,6 +277,7 @@ const FishermanDashboard = () => {
       {success && <p style={{color: "green"}}>{success}</p>}
       {error && <p style={{color: "red"}}>{error}</p>}
 
+      {/* Past Catches */}
       <h3>My Past Uploads</h3>
       {loading ? (
         <p>Loading...</p>
@@ -277,28 +307,63 @@ const FishermanDashboard = () => {
                   <strong>Ordered By:</strong> {usernames[catchItem.orderedBy] || catchItem.orderedBy}
                 </div>
               )}
+              
+              {/* Bargain Request Logic */}
               {catchItem.bargainRequest && (
-                <div style={{ color: "blue" }}>
+                <div style={{ color: "blue", marginTop: "1em" }}>
                   <strong>Bargain Requested:</strong> ₹{catchItem.bargainRequest.price} <br />
                   <strong>Requested By:</strong> {usernames[catchItem.bargainRequest.requestedBy] || catchItem.bargainRequest.requestedBy}
+                  <div style={{ marginTop: "0.5em" }}>
+                    <button onClick={() => handleAcceptBargain(catchItem.id, catchItem.bargainRequest.price)}>
+                      Accept Offer
+                    </button>
+                    <button onClick={() => handleCounterOffer(catchItem.id)} style={{ marginLeft: "1em" }}>
+                      Counter Offer
+                    </button>
+                    <button onClick={() => handleDenyNegotiation(catchItem.id)} style={{ marginLeft: "1em" }}>
+                      Deny
+                    </button>
+                    {counterOffer[catchItem.id] !== undefined && (
+                      <span style={{ marginLeft: "1em" }}>
+                        <input
+                          type="number"
+                          placeholder="Counter price"
+                          value={counterOffer[catchItem.id]}
+                          onChange={e => handleCounterOfferChange(catchItem.id, e.target.value)}
+                          min="1"
+                        />
+                        <button onClick={() => submitCounterOffer(catchItem.id)} style={{ marginLeft: "0.5em" }}>
+                          Send
+                        </button>
+                      </span>
+                    )}
+                  </div>
                 </div>
               )}
-              {/* Counter-offer logic */}
+
+              {/* Counter-offer Logic */}
               {catchItem.counterOffer && !catchItem.ordered && (
-                <div style={{ color: "orange" }}>
+                <div style={{ color: "orange", marginTop: "1em" }}>
                   <strong>Counter Offer Sent:</strong> ₹{catchItem.counterOffer.price}
                   <br />
                   <span>Waiting for customer response...</span>
                 </div>
               )}
               {catchItem.counterOfferRejected && (
-                <div style={{ color: "red" }}>
+                <div style={{ color: "red", marginTop: "1em" }}>
                   Customer rejected your counter-offer.
                 </div>
               )}
               {catchItem.ordered && !catchItem.counterOffer && (
-                <div style={{ color: "green" }}>
+                <div style={{ color: "green", marginTop: "1em" }}>
                   Customer accepted your offer! Order placed.
+                </div>
+              )}
+
+              {/* Negotiation Status */}
+              {catchItem.negotiationStatus === "denied" && (
+                <div style={{ color: "red", marginTop: "1em" }}>
+                  Negotiation ended.
                 </div>
               )}
             </li>
