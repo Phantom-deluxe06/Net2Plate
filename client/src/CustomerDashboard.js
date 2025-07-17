@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { auth, db } from "./firebase";
 import { collection, getDocs, query, orderBy, doc, updateDoc, addDoc, serverTimestamp, onSnapshot, getDoc, where } from "firebase/firestore";
-import { addNotification } from "./utils/notifications";
 
 const CustomerDashboard = () => {
   const [catches, setCatches] = useState([]);
@@ -25,6 +24,7 @@ const CustomerDashboard = () => {
         ...doc.data(),
       }));
       setCatches(catchList);
+      setLoading(false); // <-- Fix: set loading to false after data is fetched
     });
 
     return () => unsubscribe(); // Clean up listener on unmount
@@ -51,7 +51,7 @@ const CustomerDashboard = () => {
         ordered: true,
         orderedBy: auth.currentUser.uid,
       });
-      await addNotification(auth.currentUser.uid, "Your order has been placed!");
+      // await addNotification(auth.currentUser.uid, "Your order has been placed!");
     } catch (err) {
       alert("Failed to order: " + err.message);
     }
@@ -91,7 +91,7 @@ const CustomerDashboard = () => {
         counterOffer: null, // clear counter-offer
       });
       alert("Counter-offer accepted! Order placed.");
-      await addNotification(auth.currentUser.uid, "Your counter-offer has been accepted!");
+      // await addNotification(auth.currentUser.uid, "Your counter-offer has been accepted!");
     } catch (err) {
       alert("Failed to accept counter-offer: " + err.message);
     }
