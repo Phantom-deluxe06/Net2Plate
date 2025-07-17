@@ -1,72 +1,133 @@
-import React, { useState } from "react";
-import { auth, db } from "./firebase";
-import { createUserWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
+import React, { useState } from 'react';
+import { Box, Card, CardContent, Typography, TextField, Button, InputAdornment, IconButton, CircularProgress, Link, MenuItem } from '@mui/material';
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
 
-const SignUp = () => {
-  const [username, setUsername] = useState(""); // New state
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [role, setRole] = useState("Fisherman");
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+const roles = [
+  { value: 'Customer', label: 'Customer' },
+  { value: 'Fisherman', label: 'Fisherman' },
+  { value: 'Inspector', label: 'Inspector' },
+];
 
-  const handleSignUp = async (e) => {
+export default function SignUp({ onSignUp, onSwitchToLogin }) {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [role, setRole] = useState('Customer');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSignUp = (e) => {
     e.preventDefault();
-    setError("");
-    setSuccess("");
-    try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-      // Save user role and username in Firestore
-      await setDoc(doc(db, "users", user.uid), {
-        username, // Save the username
-        email,
-        role,
-      });
-      setSuccess("Sign up successful! You can now log in.");
-    } catch (err) {
-      setError(err.message);
-    }
+    setLoading(true);
+    setError('');
+    // Mock sign up
+    setTimeout(() => {
+      if (!email || !password || !confirmPassword) {
+        setError('Please fill all fields.');
+      } else if (password !== confirmPassword) {
+        setError('Passwords do not match.');
+      } else {
+        onSignUp && onSignUp({ email, role });
+      }
+      setLoading(false);
+    }, 1000);
   };
 
   return (
-    <form onSubmit={handleSignUp}>
-      <h2>Sign Up</h2>
-      <input
-        type="text"
-        placeholder="Username"
-        value={username}
-        onChange={e => setUsername(e.target.value)}
-        required
-      /><br />
-      <input
-        type="email"
-        placeholder="Email"
-        value={email}
-        onChange={e => setEmail(e.target.value)}
-        required
-      /><br />
-      <input
-        type="password"
-        placeholder="Password"
-        value={password}
-        onChange={e => setPassword(e.target.value)}
-        required
-      /><br />
-      <label>
-        Role:
-        <select value={role} onChange={e => setRole(e.target.value)}>
-          <option value="Fisherman">Fisherman</option>
-          <option value="Customer">Customer</option>
-          <option value="Inspector">Inspector</option>
-        </select>
-      </label><br />
-      <button type="submit">Sign Up</button>
-      {error && <p style={{color: "red"}}>{error}</p>}
-      {success && <p style={{color: "green"}}>{success}</p>}
-    </form>
+    <Box sx={{ minHeight: '100vh', bgcolor: '#e3f2fd', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <Card sx={{ maxWidth: 400, width: '100%', p: 2, boxShadow: 4, borderRadius: 3 }}>
+        <CardContent>
+          <Typography variant="h4" sx={{ color: '#0277bd', fontWeight: 900, mb: 1, textAlign: 'center', letterSpacing: 2 }}>
+            Net2Plate
+          </Typography>
+          <Typography variant="h5" sx={{ color: '#0277bd', fontWeight: 700, mb: 2, textAlign: 'center' }}>
+            Sign Up
+          </Typography>
+          <form onSubmit={handleSignUp}>
+            <TextField
+              label="Email"
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              fullWidth
+              required
+              sx={{ mb: 2 }}
+            />
+            <TextField
+              label="Password"
+              type={showPassword ? 'text' : 'password'}
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              fullWidth
+              required
+              sx={{ mb: 2 }}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton onClick={() => setShowPassword(v => !v)} edge="end">
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                )
+              }}
+            />
+            <TextField
+              label="Confirm Password"
+              type={showConfirm ? 'text' : 'password'}
+              value={confirmPassword}
+              onChange={e => setConfirmPassword(e.target.value)}
+              fullWidth
+              required
+              sx={{ mb: 2 }}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton onClick={() => setShowConfirm(v => !v)} edge="end">
+                      {showConfirm ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                )
+              }}
+            />
+            <TextField
+              select
+              label="Role"
+              value={role}
+              onChange={e => setRole(e.target.value)}
+              fullWidth
+              required
+              sx={{ mb: 2 }}
+            >
+              {roles.map((option) => (
+                <MenuItem key={option.value} value={option.value}>
+                  {option.label}
+                </MenuItem>
+              ))}
+            </TextField>
+            {error && <Typography color="error" sx={{ mb: 1 }}>{error}</Typography>}
+            <Button
+              type="submit"
+              variant="contained"
+              color="primary"
+              fullWidth
+              disabled={loading}
+              sx={{ mb: 2, bgcolor: '#0277bd' }}
+              startIcon={loading && <CircularProgress size={18} color="inherit" />}
+            >
+              {loading ? 'Signing up...' : 'Sign Up'}
+            </Button>
+          </form>
+          <Typography variant="body2" align="center">
+            Already have an account?{' '}
+            <Link component="button" onClick={onSwitchToLogin} sx={{ color: '#0277bd', fontWeight: 600 }}>
+              Login
+            </Link>
+          </Typography>
+        </CardContent>
+      </Card>
+    </Box>
   );
-};
-
-export default SignUp;
+}
