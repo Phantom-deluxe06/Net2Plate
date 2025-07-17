@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { auth, db } from "./firebase";
 import { collection, getDocs, query, orderBy, doc, updateDoc, addDoc, serverTimestamp, onSnapshot, getDoc, where } from "firebase/firestore";
+import './CustomerDashboard.css';
 
 const CustomerDashboard = () => {
   const [catches, setCatches] = useState([]);
@@ -24,15 +25,13 @@ const CustomerDashboard = () => {
         ...doc.data(),
       }));
       setCatches(catchList);
-      setLoading(false); // <-- Fix: set loading to false after data is fetched
+      setLoading(false);
     });
-
-    return () => unsubscribe(); // Clean up listener on unmount
+    return () => unsubscribe();
   }, []);
 
   useEffect(() => {
     if (!auth.currentUser) return;
-
     const q = query(
       collection(db, "notifications"),
       where("userId", "==", auth.currentUser.uid),
@@ -41,7 +40,6 @@ const CustomerDashboard = () => {
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       setNotifications(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     });
-
     return () => unsubscribe();
   }, [auth.currentUser]);
 
@@ -51,7 +49,6 @@ const CustomerDashboard = () => {
         ordered: true,
         orderedBy: auth.currentUser.uid,
       });
-      // await addNotification(auth.currentUser.uid, "Your order has been placed!");
     } catch (err) {
       alert("Failed to order: " + err.message);
     }
@@ -88,10 +85,9 @@ const CustomerDashboard = () => {
         ordered: true,
         orderedBy: auth.currentUser.uid,
         price: price,
-        counterOffer: null, // clear counter-offer
+        counterOffer: null,
       });
       alert("Counter-offer accepted! Order placed.");
-      // await addNotification(auth.currentUser.uid, "Your counter-offer has been accepted!");
     } catch (err) {
       alert("Failed to accept counter-offer: " + err.message);
     }
@@ -108,7 +104,7 @@ const CustomerDashboard = () => {
           price: reBargainPrice,
           requestedBy: auth.currentUser.uid,
         },
-        counterOffer: null, // clear previous counter-offer
+        counterOffer: null,
       });
       setReBargainPrice("");
       alert("Re-bargain request sent!");
@@ -129,62 +125,46 @@ const CustomerDashboard = () => {
     await updateDoc(doc(db, "notifications", notificationId), { read: true });
   };
 
-  // Filter catches based on showMyOrders state
   const filteredCatches = showMyOrders 
     ? catches.filter(catchItem => catchItem.orderedBy === auth.currentUser.uid)
     : catches;
 
   return (
-    <div>
-      <h2>Welcome, Customer!</h2>
-      <button onClick={handleLogout}>Logout</button>
-      
-      <div style={{ marginBottom: "1em" }}>
-        <button 
+    <div className="customer-dashboard-container">
+      <h2 className="customer-dashboard-header">Welcome, Customer!</h2>
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "1em" }}>
+        <button onClick={handleLogout} className="customer-dashboard-btn" style={{ background: "#dc3545", borderColor: "#dc3545" }}>
+          Logout
+        </button>
+      </div>
+      <div style={{ marginBottom: "2em", display: "flex", gap: "1em" }}>
+        <button
           onClick={() => setShowMyOrders(false)}
-          style={{ 
-            marginRight: "1em",
-            backgroundColor: !showMyOrders ? "#007bff" : "#f8f9fa",
-            color: !showMyOrders ? "white" : "black",
-            padding: "0.5em 1em",
-            border: "1px solid #007bff",
-            borderRadius: "4px",
-            cursor: "pointer"
-          }}
+          className={`customer-dashboard-btn${!showMyOrders ? "" : " inactive"}`}
         >
           All Catches
         </button>
-        <button 
+        <button
           onClick={() => setShowMyOrders(true)}
-          style={{ 
-            backgroundColor: showMyOrders ? "#007bff" : "#f8f9fa",
-            color: showMyOrders ? "white" : "black",
-            padding: "0.5em 1em",
-            border: "1px solid #007bff",
-            borderRadius: "4px",
-            cursor: "pointer"
-          }}
+          className={`customer-dashboard-btn${showMyOrders ? "" : " inactive"}`}
         >
           My Orders
         </button>
       </div>
-
-      <h3>{showMyOrders ? "My Orders" : "Available Catches"}</h3>
+      <h3 style={{ borderBottom: "2px solid #007bff", paddingBottom: "0.5em", marginBottom: "1em" }}>
+        {showMyOrders ? "My Orders" : "Available Catches"}
+      </h3>
       {loading ? (
-        <p>Loading...</p>
+        <div>
+          <div className="customer-dashboard-spinner"></div>
+          <p className="customer-dashboard-empty">Loading...</p>
+        </div>
       ) : filteredCatches.length === 0 ? (
-        <p>{showMyOrders ? "You haven't placed any orders yet." : "No catches available."}</p>
+        <p className="customer-dashboard-empty">{showMyOrders ? "You haven't placed any orders yet." : "No catches available."}</p>
       ) : (
         <ul style={{ listStyle: "none", padding: 0 }}>
           {filteredCatches.map(catchItem => (
-            <li key={catchItem.id} style={{ 
-              marginBottom: "2em", 
-              border: "1px solid #ddd", 
-              borderRadius: "8px",
-              padding: "1.5em",
-              backgroundColor: "white",
-              boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
-            }}>
+            <li key={catchItem.id} className="customer-dashboard-card">
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                 <div style={{ flex: 1 }}>
                   <h4 style={{ margin: "0 0 0.5em 0", color: "#333" }}>{catchItem.fishName}</h4>
@@ -194,7 +174,6 @@ const CustomerDashboard = () => {
                   <p style={{ margin: "0.25em 0", color: "#666" }}>
                     <strong>Price:</strong> ₹{catchItem.price}
                   </p>
-                  
                   <div style={{ margin: "1em 0" }}>
                     <strong>Freshness Checklist:</strong>
                     <ul style={{ margin: "0.5em 0", paddingLeft: "1.5em" }}>
@@ -204,23 +183,21 @@ const CustomerDashboard = () => {
                     </ul>
                   </div>
                 </div>
-                
                 {catchItem.photoURL && (
                   <div style={{ marginLeft: "1em" }}>
-                    <img 
-                      src={catchItem.photoURL} 
-                      alt="Fish" 
-                      style={{ 
-                        maxWidth: "200px", 
+                    <img
+                      src={catchItem.photoURL}
+                      alt="Fish"
+                      style={{
+                        maxWidth: "200px",
                         maxHeight: "150px",
                         borderRadius: "4px",
                         objectFit: "cover"
-                      }} 
+                      }}
                     />
                   </div>
                 )}
               </div>
-
               {!catchItem.ordered && (
                 <>
                   <button 
@@ -385,6 +362,9 @@ const CustomerDashboard = () => {
                     )}
                   </div>
                 )}
+              </div>
+              <div className="customer-dashboard-status" style={{ border: `1px solid #007bff`, background: "#e9ecef" }}>
+                <span>Status: {getOrderStatus(catchItem).text}</span>
               </div>
             </li>
           ))}
