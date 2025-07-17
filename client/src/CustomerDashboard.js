@@ -7,6 +7,7 @@ const CustomerDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [bargainId, setBargainId] = useState(null);
   const [bargainPrice, setBargainPrice] = useState("");
+  const [reBargainPrice, setReBargainPrice] = useState("");
 
   const handleLogout = () => {
     auth.signOut();
@@ -72,6 +73,50 @@ const CustomerDashboard = () => {
     }
   };
 
+  const acceptCounterOffer = async (catchId, price) => {
+    try {
+      await updateDoc(doc(db, "catches", catchId), {
+        ordered: true,
+        orderedBy: auth.currentUser.uid,
+        price: price,
+        counterOffer: null, // clear counter-offer
+      });
+      fetchCatches();
+      alert("Counter-offer accepted! Order placed.");
+    } catch (err) {
+      alert("Failed to accept counter-offer: " + err.message);
+    }
+  };
+
+  const submitReBargain = async (catchId) => {
+    if (!reBargainPrice || isNaN(reBargainPrice) || Number(reBargainPrice) <= 0) {
+      alert("Please enter a valid price.");
+      return;
+    }
+    try {
+      await updateDoc(doc(db, "catches", catchId), {
+        bargainRequest: {
+          price: reBargainPrice,
+          requestedBy: auth.currentUser.uid,
+        },
+        counterOffer: null, // clear previous counter-offer
+      });
+      setReBargainPrice("");
+      fetchCatches();
+      alert("Re-bargain request sent!");
+    } catch (err) {
+      alert("Failed to request re-bargain: " + err.message);
+    }
+  };
+
+  function getOrderStatus(catchItem) {
+    if (catchItem.rejected) return "Rejected";
+    if (catchItem.delivered) return "Delivered";
+    if (catchItem.inspected) return "Inspected";
+    if (catchItem.ordered) return "Ordered";
+    return "Available";
+  }
+
   return (
     <div>
       <h2>Welcome, Customer!</h2>
@@ -130,10 +175,34 @@ const CustomerDashboard = () => {
                       Bargain requested: ₹{catchItem.bargainRequest.price}
                     </div>
                   )}
+                  {catchItem.counterOffer && (
+                    <div style={{ color: "orange", marginTop: "0.5em" }}>
+                      Fisherman counter-offer: ₹{catchItem.counterOffer.price}
+                      <div style={{ marginTop: "0.5em" }}>
+                        <button onClick={() => acceptCounterOffer(catchItem.id, catchItem.counterOffer.price)}>
+                          Accept Counter-Offer
+                        </button>
+                        <input
+                          type="number"
+                          placeholder="Propose new price (₹)"
+                          value={reBargainPrice}
+                          onChange={e => setReBargainPrice(e.target.value)}
+                          min="1"
+                          style={{ marginLeft: "1em" }}
+                        />
+                        <button onClick={() => submitReBargain(catchItem.id)} style={{ marginLeft: "0.5em" }}>
+                          Re-bargain
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
-              {catchItem.ordered && (
-                <span style={{ color: "green", marginLeft: "1em" }}>Ordered</span>
+              <strong>Status:</strong> {getOrderStatus(catchItem)}
+              {catchItem.rejected && (
+                <div style={{ color: "red" }}>
+                  Reason: {typeof catchItem.rejected === "string" ? catchItem.rejected : "Rejected by inspector"}
+                </div>
               )}
             </li>
           ))}
