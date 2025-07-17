@@ -260,7 +260,13 @@ const FishermanDashboard = () => {
               <strong>Fish Name:</strong> {catchItem.fishName} <br />
               <strong>Weight:</strong> {catchItem.weight} kg<br />
               <strong>Price:</strong> ₹{catchItem.price} <br />
-              <strong>Status:</strong> {catchItem.ordered ? (catchItem.inspected ? "Inspected" : "Ordered") : "Available"}<br />
+              <strong>Status:</strong> {
+                catchItem.rejected ? "Rejected"
+                : catchItem.delivered ? "Delivered"
+                : catchItem.inspected ? "Inspected"
+                : catchItem.ordered ? "Ordered"
+                : "Available"
+              }<br />
               {catchItem.photoURL && (
                 <div>
                   <img src={catchItem.photoURL} alt="Fish" style={{ maxWidth: "200px", marginTop: "1em" }} />
@@ -275,33 +281,24 @@ const FishermanDashboard = () => {
                 <div style={{ color: "blue" }}>
                   <strong>Bargain Requested:</strong> ₹{catchItem.bargainRequest.price} <br />
                   <strong>Requested By:</strong> {usernames[catchItem.bargainRequest.requestedBy] || catchItem.bargainRequest.requestedBy}
-                  <div style={{ marginTop: "0.5em" }}>
-                    <button onClick={() => handleAcceptBargain(catchItem.id, catchItem.bargainRequest.price)}>
-                      Accept Offer
-                    </button>
-                    <button onClick={() => handleCounterOffer(catchItem.id)} style={{ marginLeft: "1em" }}>
-                      Counter Offer
-                    </button>
-                    {counterOffer[catchItem.id] !== undefined && (
-                      <span style={{ marginLeft: "1em" }}>
-                        <input
-                          type="number"
-                          placeholder="Counter price"
-                          value={counterOffer[catchItem.id]}
-                          onChange={e => handleCounterOfferChange(catchItem.id, e.target.value)}
-                          min="1"
-                        />
-                        <button onClick={() => submitCounterOffer(catchItem.id)} style={{ marginLeft: "0.5em" }}>
-                          Send
-                        </button>
-                      </span>
-                    )}
-                  </div>
                 </div>
               )}
-              {catchItem.counterOffer && (
+              {/* Counter-offer logic */}
+              {catchItem.counterOffer && !catchItem.ordered && (
                 <div style={{ color: "orange" }}>
                   <strong>Counter Offer Sent:</strong> ₹{catchItem.counterOffer.price}
+                  <br />
+                  <span>Waiting for customer response...</span>
+                </div>
+              )}
+              {catchItem.counterOfferRejected && (
+                <div style={{ color: "red" }}>
+                  Customer rejected your counter-offer.
+                </div>
+              )}
+              {catchItem.ordered && !catchItem.counterOffer && (
+                <div style={{ color: "green" }}>
+                  Customer accepted your offer! Order placed.
                 </div>
               )}
             </li>
