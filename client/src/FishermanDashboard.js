@@ -40,6 +40,7 @@ import NotificationsIcon from '@mui/icons-material/Notifications';
 import FishingIcon from '@mui/icons-material/Anchor';
 import { db } from './firebase';
 import { collection, addDoc, query, where, onSnapshot } from 'firebase/firestore';
+import { useNavigate } from 'react-router-dom';
 
 const mockCatches = [
   {
@@ -189,7 +190,8 @@ export default function FishermanDashboard({ onLogout, user }) {
   };
 
   const handleNotificationClick = () => setOrdersOpen(true);
-  const handleProfileClick = () => setProfileOpen(true);
+  const navigate = useNavigate();
+  const handleProfileClick = () => navigate('/fisherman/profile');
 
   // Edit handlers
   const handleEditClick = (item) => {
@@ -230,9 +232,15 @@ export default function FishermanDashboard({ onLogout, user }) {
   };
 
   return (
-    <Box sx={{ bgcolor: '#e3f2fd', minHeight: '100vh' }}>
-      {/* AppBar */}
-      <AppBar position="static" sx={{ bgcolor: '#01579b' }}>
+    <Box sx={{ 
+      minHeight: '100vh', 
+      background: 'url(https://source.unsplash.com/random?fishing)', 
+      backgroundSize: 'cover', 
+      backgroundPosition: 'center', 
+      display: 'flex', 
+      flexDirection: 'column' 
+    }}>
+      <AppBar position="static" sx={{ background: 'rgba(1, 87, 155, 0.8)', backdropFilter: 'blur(10px)' }}>
         <Toolbar>
           <IconButton edge="start" color="inherit" onClick={handleDrawerToggle}>
             <MenuIcon />
@@ -252,10 +260,9 @@ export default function FishermanDashboard({ onLogout, user }) {
         </Toolbar>
       </AppBar>
 
-      {/* Drawer Navigation */}
-      <Drawer anchor="left" open={drawerOpen} onClose={handleDrawerToggle}>
+      <Drawer anchor="left" open={drawerOpen} onClose={handleDrawerToggle} sx={{ '& .MuiDrawer-paper': { background: 'rgba(225, 245, 254, 0.8)', backdropFilter: 'blur(10px)' } }}>
         <Box sx={{ width: 240 }} role="presentation">
-          <Box sx={{ p: 2, textAlign: 'center', bgcolor: '#e1f5fe' }}>
+          <Box sx={{ p: 2, textAlign: 'center', bgcolor: 'rgba(2, 136, 209, 0.2)' }}>
             <Chip label="Fisherman" color="primary" sx={{ bgcolor: '#0288d1', color: '#fff', fontWeight: 700 }} />
           </Box>
           <List>
@@ -280,10 +287,9 @@ export default function FishermanDashboard({ onLogout, user }) {
         </Box>
       </Drawer>
 
-      {/* Main Content */}
-      <Box ref={mainRef} sx={{ p: { xs: 2, md: 4 }, maxWidth: 1200, mx: 'auto' }}>
+      <Box ref={mainRef} sx={{ p: { xs: 2, md: 4 }, maxWidth: 1200, mx: 'auto', flexGrow: 1 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-          <Typography variant="h5" sx={{ flexGrow: 1, fontWeight: 600, color: '#01579b' }}>
+          <Typography variant="h5" sx={{ flexGrow: 1, fontWeight: 600, color: '#fff' }}>
             Welcome, Fisherman!
           </Typography>
           <Fab color="primary" aria-label="add" onClick={handleUploadOpen}>
@@ -291,13 +297,13 @@ export default function FishermanDashboard({ onLogout, user }) {
           </Fab>
         </Box>
 
-        {/* Upload Form Modal/Section */}
         {uploadOpen && (
           <Box
             component="form"
             onSubmit={handleFormSubmit}
             sx={{
-              bgcolor: '#ffffff',
+              background: 'rgba(255, 255, 255, 0.25)',
+              backdropFilter: 'blur(4px)',
               p: 3,
               borderRadius: 3,
               boxShadow: 3,
@@ -306,7 +312,7 @@ export default function FishermanDashboard({ onLogout, user }) {
               mx: 'auto',
             }}
           >
-            <Typography variant="h6" sx={{ mb: 2, color: '#0277bd' }}>
+            <Typography variant="h6" sx={{ mb: 2, color: '#fff' }}>
               Upload New Catch
             </Typography>
             <TextField
@@ -316,7 +322,7 @@ export default function FishermanDashboard({ onLogout, user }) {
               onChange={handleFormChange}
               fullWidth
               required
-              sx={{ mb: 2 }}
+              sx={{ mb: 2, input: { color: 'white' }, label: { color: 'white' } }}
             />
             <TextField
               label="Weight (kg)"
@@ -326,7 +332,7 @@ export default function FishermanDashboard({ onLogout, user }) {
               onChange={handleFormChange}
               fullWidth
               required
-              sx={{ mb: 2 }}
+              sx={{ mb: 2, input: { color: 'white' }, label: { color: 'white' } }}
               inputProps={{ min: 0, step: 0.1 }}
             />
             <TextField
@@ -337,10 +343,10 @@ export default function FishermanDashboard({ onLogout, user }) {
               onChange={handleFormChange}
               fullWidth
               required
-              sx={{ mb: 2 }}
+              sx={{ mb: 2, input: { color: 'white' }, label: { color: 'white' } }}
               inputProps={{ min: 0, step: 0.1 }}
             />
-            <Typography variant="subtitle1" sx={{ mb: 1, color: '#0288d1' }}>
+            <Typography variant="subtitle1" sx={{ mb: 1, color: '#fff' }}>
               Freshness Checklist
             </Typography>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', mb: 2 }}>
@@ -353,10 +359,11 @@ export default function FishermanDashboard({ onLogout, user }) {
                       onChange={handleFormChange}
                       name="freshness"
                       value={option}
+                      sx={{ color: 'white' }}
                     />
                   }
                   label={option}
-                  sx={{ mr: 2 }}
+                  sx={{ color: 'white' }}
                 />
               ))}
             </Box>
@@ -375,7 +382,6 @@ export default function FishermanDashboard({ onLogout, user }) {
                 onChange={e => {
                   const files = Array.from(e.target.files);
                   setCatchForm(prev => ({ ...prev, photoFiles: files }));
-                  // For preview, use FileReader for each file
                   Promise.all(files.map(file => new Promise(res => {
                     const reader = new FileReader();
                     reader.onload = ev => res(ev.target.result);
@@ -409,8 +415,7 @@ export default function FishermanDashboard({ onLogout, user }) {
           </Box>
         )}
 
-        {/* Catches List */}
-        <Typography ref={catchesRef} variant="h6" sx={{ mb: 2, color: '#0277bd' }}>
+        <Typography ref={catchesRef} variant="h6" sx={{ mb: 2, color: '#fff' }}>
           My Catches
         </Typography>
         {loadingCatches ? (
@@ -425,7 +430,7 @@ export default function FishermanDashboard({ onLogout, user }) {
               width={100}
               style={{ opacity: 0.5 }}
             />
-            <Typography variant="subtitle1" sx={{ mt: 2, color: '#90caf9' }}>
+            <Typography variant="subtitle1" sx={{ mt: 2, color: '#fff' }}>
               No catches uploaded yet. Click the + button to add your first catch!
             </Typography>
           </Box>
@@ -433,7 +438,7 @@ export default function FishermanDashboard({ onLogout, user }) {
           <Grid container spacing={3}>
             {myCatches.map((item) => (
               <Grid item xs={12} sm={6} md={4} key={item.id}>
-                <Card sx={{ borderRadius: 3, boxShadow: 4, bgcolor: '#e1f5fe', position: 'relative' }}>
+                <Card sx={{ borderRadius: 3, boxShadow: 4, background: 'rgba(225, 245, 254, 0.8)', backdropFilter: 'blur(10px)', position: 'relative' }}>
                   <CardMedia
                     component="img"
                     height="160"
@@ -493,7 +498,6 @@ export default function FishermanDashboard({ onLogout, user }) {
             ))}
           </Grid>
         )}
-      {/* Edit Catch Dialog */}
       <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)}>
         <DialogTitle>Edit Catch</DialogTitle>
         <DialogContent>
@@ -575,7 +579,6 @@ export default function FishermanDashboard({ onLogout, user }) {
                   onChange={e => {
                     const files = Array.from(e.target.files);
                     setCatchToEdit(prev => ({ ...prev, photoFiles: files }));
-                    // For preview, use FileReader for each file
                     Promise.all(files.map(file => new Promise(res => {
                       const reader = new FileReader();
                       reader.onload = ev => res(ev.target.result);
@@ -592,7 +595,6 @@ export default function FishermanDashboard({ onLogout, user }) {
           <Button color="primary" onClick={handleEditSave}>Save</Button>
         </DialogActions>
       </Dialog>
-      {/* Delete Catch Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
         <DialogTitle>Delete Catch</DialogTitle>
         <DialogContent>
@@ -605,7 +607,6 @@ export default function FishermanDashboard({ onLogout, user }) {
       </Dialog>
       </Box>
 
-      {/* Orders Modal */}
       <Dialog open={ordersOpen} onClose={() => setOrdersOpen(false)}>
         <DialogTitle>Order Notifications</DialogTitle>
         <DialogContent>
@@ -626,7 +627,6 @@ export default function FishermanDashboard({ onLogout, user }) {
         </DialogActions>
       </Dialog>
 
-      {/* Profile Modal */}
       <Dialog open={profileOpen} onClose={() => setProfileOpen(false)}>
         <DialogTitle>Profile</DialogTitle>
         <DialogContent>
@@ -638,14 +638,12 @@ export default function FishermanDashboard({ onLogout, user }) {
           <Typography variant="subtitle2">Role: Fisherman</Typography>
           <Typography variant="subtitle2">Fisherman ID: FISH123</Typography>
           <Typography variant="subtitle2">Location: Coastal Village</Typography>
-          {/* Add more profile info or edit form here */}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setProfileOpen(false)}>Close</Button>
         </DialogActions>
       </Dialog>
 
-      {/* Confirmation Dialog for Logout */}
       <Dialog open={logoutDialogOpen} onClose={() => setLogoutDialogOpen(false)}>
         <DialogTitle>Confirm Logout</DialogTitle>
         <DialogContent>
@@ -657,7 +655,6 @@ export default function FishermanDashboard({ onLogout, user }) {
         </DialogActions>
       </Dialog>
 
-      {/* Snackbar for feedback */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={3000}

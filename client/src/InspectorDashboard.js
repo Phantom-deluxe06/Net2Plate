@@ -10,6 +10,7 @@ import NotificationsIcon from '@mui/icons-material/Notifications';
 import CatchingPokemonIcon from '@mui/icons-material/CatchingPokemon';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import { useNavigate } from 'react-router-dom';
 
 const mockOrders = [
   {
@@ -60,7 +61,8 @@ export default function InspectorDashboard({ onLogout }) {
     }
   };
   const handleNotificationClick = () => setNotificationsOpen(true);
-  const handleProfileClick = () => setProfileOpen(true);
+  const navigate = useNavigate();
+  const handleProfileClick = () => navigate('/inspector/profile');
   const handleSnackbarClose = () => setSnackbar((prev) => ({ ...prev, open: false }));
 
   const handleInspect = (fish) => {
@@ -91,14 +93,14 @@ export default function InspectorDashboard({ onLogout }) {
       const imgbbData = await imgbbRes.json();
       if (!imgbbData.success) throw new Error('Image upload failed');
       const imageUrl = imgbbData.data.url;
-      // 2. Send to local Roboflow server
-      const response = await fetch('https://serverless.roboflow.com/infer/workflows/net2plate/detect-count-and-visualize-2', {
+      // 2. Send to Roboflow serverless endpoint
+      const response = await fetch('https://serverless.roboflow.com/infer/workflows/net2plate-rwp4m/detect-count-and-visualize-3', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          api_key: 'uJymOgEeq9wJEyyqSsRa',
+          api_key: 'hI0kL1gwkIQzn6lJlX9R',
           inputs: {
             "image": { "type": "url", "value": imageUrl }
           }
@@ -114,8 +116,15 @@ export default function InspectorDashboard({ onLogout }) {
   };
 
   return (
-    <Box sx={{ bgcolor: '#e3f2fd', minHeight: '100vh' }}>
-      <AppBar position="static" sx={{ bgcolor: '#2e7d32' }}>
+    <Box sx={{ 
+      minHeight: '100vh', 
+      background: 'url(https://source.unsplash.com/random?underwater)', 
+      backgroundSize: 'cover', 
+      backgroundPosition: 'center', 
+      display: 'flex', 
+      flexDirection: 'column' 
+    }}>
+      <AppBar position="static" sx={{ background: 'rgba(46, 125, 50, 0.8)', backdropFilter: 'blur(10px)' }}>
         <Toolbar>
           <IconButton edge="start" color="inherit" onClick={handleDrawerToggle}>
             <MenuIcon />
@@ -134,10 +143,9 @@ export default function InspectorDashboard({ onLogout }) {
           </Avatar>
         </Toolbar>
       </AppBar>
-      {/* Drawer Navigation */}
-      <Drawer anchor="left" open={drawerOpen} onClose={handleDrawerToggle}>
+      <Drawer anchor="left" open={drawerOpen} onClose={handleDrawerToggle} sx={{ '& .MuiDrawer-paper': { background: 'rgba(232, 245, 233, 0.8)', backdropFilter: 'blur(10px)' } }}>
         <Box sx={{ width: 240 }} role="presentation">
-          <Box sx={{ p: 2, textAlign: 'center', bgcolor: '#e8f5e9' }}>
+          <Box sx={{ p: 2, textAlign: 'center', bgcolor: 'rgba(67, 160, 71, 0.2)' }}>
             <Chip label="Inspector" color="primary" sx={{ bgcolor: '#43a047', color: '#fff', fontWeight: 700 }} />
           </Box>
           <List>
@@ -161,19 +169,19 @@ export default function InspectorDashboard({ onLogout }) {
           </List>
         </Box>
       </Drawer>
-      <Box ref={mainRef} sx={{ p: { xs: 2, md: 4 }, maxWidth: 1200, mx: 'auto' }}>
+      <Box ref={mainRef} sx={{ p: { xs: 2, md: 4 }, maxWidth: 1200, mx: 'auto', flexGrow: 1 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-          <Typography variant="h5" sx={{ flexGrow: 1, fontWeight: 600, color: '#01579b' }}>
+          <Typography variant="h5" sx={{ flexGrow: 1, fontWeight: 600, color: '#fff' }}>
             Welcome, Inspector!
           </Typography>
         </Box>
-        <Typography ref={assignedRef} variant="h6" sx={{ mb: 2, color: '#0277bd' }}>
+        <Typography ref={assignedRef} variant="h6" sx={{ mb: 2, color: '#fff' }}>
           Assigned Orders
         </Typography>
         <Grid container spacing={3}>
           {mockOrders.map((item) => (
             <Grid item xs={12} sm={6} md={4} key={item.id}>
-              <Card sx={{ borderRadius: 3, boxShadow: 4, bgcolor: '#e1f5fe' }}>
+              <Card sx={{ borderRadius: 3, boxShadow: 4, background: 'rgba(225, 245, 254, 0.8)', backdropFilter: 'blur(10px)' }}>
                 <CardMedia
                   component="img"
                   height="160"
@@ -207,7 +215,7 @@ export default function InspectorDashboard({ onLogout }) {
             </Grid>
           ))}
         </Grid>
-        <Box sx={{ mb: 4, mt: 2, p: 2, bgcolor: '#f1f8e9', borderRadius: 2, boxShadow: 1 }}>
+        <Box sx={{ mb: 4, mt: 2, p: 2, background: 'rgba(241, 248, 233, 0.8)', backdropFilter: 'blur(10px)', borderRadius: 2, boxShadow: 1 }}>
           <Typography variant="h6" sx={{ color: '#2e7d32', mb: 2 }}>
             On-Spot AI Freshness Analysis
           </Typography>
@@ -220,23 +228,17 @@ export default function InspectorDashboard({ onLogout }) {
           {aiResult && (
             <Box sx={{ mt: 2 }}>
               <Typography variant="subtitle1" sx={{ color: '#388e3c' }}>AI Result:</Typography>
-              {/* User-friendly summary */}
               {(() => {
-                // Try to extract a main prediction/class from Roboflow result
                 let summary = 'No prediction';
                 let score = null;
                 let predictions = [];
-                // Robustly extract predictions from all possible locations
                 if (aiResult) {
-                  // Roboflow "outputs" array (your case)
                   if (Array.isArray(aiResult.outputs) && aiResult.outputs.length > 0) {
                     const output = aiResult.outputs[0];
                     if (output.predictions && Array.isArray(output.predictions.predictions)) {
                       predictions = output.predictions.predictions;
                     }
-                  }
-                  // Fallbacks for other Roboflow shapes
-                  else if (Array.isArray(aiResult.predictions)) {
+                  } else if (Array.isArray(aiResult.predictions)) {
                     predictions = aiResult.predictions;
                   } else if (aiResult.predictions && Array.isArray(aiResult.predictions.predictions)) {
                     predictions = aiResult.predictions.predictions;
@@ -257,19 +259,17 @@ export default function InspectorDashboard({ onLogout }) {
                   </Box>
                 );
               })()}
-              {/* Collapsible full JSON */}
               <Button size="small" onClick={() => setShowJson(v => !v)} startIcon={showJson ? <ExpandLessIcon /> : <ExpandMoreIcon />}
                 sx={{ mb: 1 }}>
                 {showJson ? 'Hide Details' : 'Show Full AI JSON'}
               </Button>
               <Collapse in={showJson}>
-                <pre style={{ background: '#e8f5e9', padding: 10, borderRadius: 6, fontSize: 14, overflowX: 'auto' }}>{JSON.stringify(aiResult, null, 2)}</pre>
+                <pre style={{ background: 'rgba(232, 245, 233, 0.8)', padding: 10, borderRadius: 6, fontSize: 14, overflowX: 'auto' }}>{JSON.stringify(aiResult, null, 2)}</pre>
               </Collapse>
             </Box>
           )}
         </Box>
       </Box>
-      {/* Notifications Modal */}
       <Dialog open={notificationsOpen} onClose={() => setNotificationsOpen(false)}>
         <DialogTitle>Inspection Notifications</DialogTitle>
         <DialogContent>
@@ -279,7 +279,6 @@ export default function InspectorDashboard({ onLogout }) {
           <Button onClick={() => setNotificationsOpen(false)}>Close</Button>
         </DialogActions>
       </Dialog>
-      {/* Profile Modal */}
       <Dialog open={profileOpen} onClose={() => setProfileOpen(false)}>
         <DialogTitle>Profile</DialogTitle>
         <DialogContent>
@@ -296,7 +295,6 @@ export default function InspectorDashboard({ onLogout }) {
           <Button onClick={() => setProfileOpen(false)}>Close</Button>
         </DialogActions>
       </Dialog>
-      {/* Snackbar for feedback */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={3000}
@@ -307,7 +305,6 @@ export default function InspectorDashboard({ onLogout }) {
           {snackbar.message}
         </Alert>
       </Snackbar>
-      {/* Confirmation Dialog for Logout */}
       <Dialog open={logoutDialogOpen} onClose={() => setLogoutDialogOpen(false)}>
         <DialogTitle>Confirm Logout</DialogTitle>
         <DialogContent>

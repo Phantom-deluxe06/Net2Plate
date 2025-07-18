@@ -7,8 +7,9 @@ import SignUp from './SignUp';
 import CustomerDashboardHome from './CustomerDashboardHome';
 import CustomerBrowse from './CustomerBrowse';
 import FishDetails from './FishDetails';
+import Profile from './Profile'; // Import the Profile component
 import { Snackbar, Alert } from '@mui/material';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
 
 const initialCatches = [
   {
@@ -33,15 +34,12 @@ const initialCatches = [
   },
 ];
 
-function App() {
-  const [user, setUser] = useState(null); // { email, role }
-  const [showSignUp, setShowSignUp] = useState(false);
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
-  const [catches, setCatches] = useState(initialCatches);
+function AppRoutes({ user, setUser, showSignUp, setShowSignUp, snackbar, setSnackbar, catches, setCatches }) {
+  const navigate = useNavigate();
 
   // Handle login (mock)
   const handleLogin = (userObj) => {
-    setSnackbar({ open: true, message: 'Login successful! Please select your role.', severity: 'success' });
+    setSnackbar({ open: true, message: 'Login successful! Redirecting...', severity: 'success' });
     setTimeout(() => {
       setUser({ ...userObj, role: userObj.role || 'Customer' });
     }, 800);
@@ -59,32 +57,70 @@ function App() {
     setSnackbar({ open: true, message: 'Logged out.', severity: 'info' });
   };
 
-  const dashboardProps = { onLogout: handleLogout };
+  const dashboardProps = { onLogout: handleLogout, user: user };
+
+  // Redirect to dashboard after login
+  React.useEffect(() => {
+    if (user) {
+      if (user.role === 'Customer') navigate('/customer');
+      else if (user.role === 'Fisherman') navigate('/fisherman');
+      else if (user.role === 'Inspector') navigate('/inspector');
+    }
+  }, [user, navigate]);
 
   return (
-    <BrowserRouter>
+    <>
       {(!user) ? (
         showSignUp ? (
           <SignUp onSignUp={handleSignUp} onSwitchToLogin={() => setShowSignUp(false)} />
         ) : (
           <Login onLogin={handleLogin} onSwitchToSignUp={() => setShowSignUp(true)} />
         )
-      ) : user.role === 'Customer' ? (
-        <Routes>
-          <Route path="/customer" element={<CustomerDashboard {...dashboardProps} /> }>
-            <Route index element={<CustomerDashboardHome />} />
-            <Route path="browse" element={<CustomerBrowse catches={catches} />} />
-            <Route path="browse/:id" element={<FishDetails />} />
-          </Route>
-          <Route path="*" element={<CustomerDashboard {...dashboardProps} /> } />
-        </Routes>
-      ) : user.role === 'Fisherman' ? (
-        <FishermanDashboard {...dashboardProps} user={user} catches={catches} setCatches={setCatches} />
-      ) : user.role === 'Inspector' ? (
-        <InspectorDashboard {...dashboardProps} />
       ) : (
-        <div>Loading dashboard...</div>
+        <Routes>
+          {user.role === 'Customer' && (
+            <Route path="/customer/*" element={<CustomerDashboard {...dashboardProps} />}>
+              <Route index element={<CustomerDashboardHome />} />
+              <Route path="browse" element={<CustomerBrowse catches={catches} />} />
+              <Route path="browse/:id" element={<FishDetails />} />
+              <Route path="profile" element={<Profile user={user} />} />
+            </Route>
+          )}
+          {user.role === 'Fisherman' && (
+            <Route path="/fisherman/*" element={<FishermanDashboard {...dashboardProps} />}>
+              <Route path="profile" element={<Profile user={user} />} />
+            </Route>
+          )}
+          {user.role === 'Inspector' && (
+            <Route path="/inspector/*" element={<InspectorDashboard {...dashboardProps} />}>
+              <Route path="profile" element={<Profile user={user} />} />
+            </Route>
+          )}
+          <Route path="*" element={user.role === 'Customer' ? <CustomerDashboard {...dashboardProps} /> : user.role === 'Fisherman' ? <FishermanDashboard {...dashboardProps} /> : <InspectorDashboard {...dashboardProps} />} />
+        </Routes>
       )}
+    </>
+  );
+}
+
+function App() {
+  const [user, setUser] = useState(null); // { email, role, username, mobile }
+  const [showSignUp, setShowSignUp] = useState(false);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const [catches, setCatches] = useState(initialCatches);
+
+  return (
+    <BrowserRouter>
+      <AppRoutes
+        user={user}
+        setUser={setUser}
+        showSignUp={showSignUp}
+        setShowSignUp={setShowSignUp}
+        snackbar={snackbar}
+        setSnackbar={setSnackbar}
+        catches={catches}
+        setCatches={setCatches}
+      />
       <Snackbar
         open={snackbar.open}
         autoHideDuration={3000}

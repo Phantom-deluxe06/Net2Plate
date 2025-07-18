@@ -33,12 +33,19 @@ export default function CustomerDashboard({ onLogout }) {
     }
   };
   const handleNotificationClick = () => setOrdersOpen(true);
-  const handleProfileClick = () => setProfileOpen(true);
+  const handleProfileClick = () => navigate('/customer/profile');
   const handleSnackbarClose = () => setSnackbar((prev) => ({ ...prev, open: false }));
 
   return (
-    <Box sx={{ bgcolor: '#e3f2fd', minHeight: '100vh' }}>
-      <AppBar position="static" sx={{ bgcolor: '#00838f' }}>
+    <Box sx={{ 
+      minHeight: '100vh', 
+      background: 'url(https://source.unsplash.com/random?fish)', 
+      backgroundSize: 'cover', 
+      backgroundPosition: 'center', 
+      display: 'flex', 
+      flexDirection: 'column' 
+    }}>
+      <AppBar position="static" sx={{ background: 'rgba(0, 131, 143, 0.8)', backdropFilter: 'blur(10px)' }}>
         <Toolbar>
           <IconButton edge="start" color="inherit" onClick={handleDrawerToggle}>
             <MenuIcon />
@@ -57,10 +64,9 @@ export default function CustomerDashboard({ onLogout }) {
           </Avatar>
         </Toolbar>
       </AppBar>
-      {/* Drawer Navigation */}
-      <Drawer anchor="left" open={drawerOpen} onClose={handleDrawerToggle}>
+      <Drawer anchor="left" open={drawerOpen} onClose={handleDrawerToggle} sx={{ '& .MuiDrawer-paper': { background: 'rgba(224, 247, 250, 0.8)', backdropFilter: 'blur(10px)' } }}>
         <Box sx={{ width: 240 }} role="presentation">
-          <Box sx={{ p: 2, textAlign: 'center', bgcolor: '#e0f7fa' }}>
+          <Box sx={{ p: 2, textAlign: 'center', bgcolor: 'rgba(0, 188, 212, 0.2)' }}>
             <Chip label="Customer" color="primary" sx={{ bgcolor: '#00bcd4', color: '#fff', fontWeight: 700 }} />
           </Box>
           <List>
@@ -84,12 +90,9 @@ export default function CustomerDashboard({ onLogout }) {
           </List>
         </Box>
       </Drawer>
-      {/* Main content rendered by router */}
-      <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: 1200, mx: 'auto' }}>
+      <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: 1200, mx: 'auto', flexGrow: 1 }}>
         <Outlet />
       </Box>
-      {/* Orders Modal (can be refactored to a separate component if needed) */}
-      {/* ... existing Orders Modal, Profile Modal, Logout Dialog, Snackbar ... */}
       <Dialog open={ordersOpen} onClose={() => setOrdersOpen(false)}>
         <DialogTitle>My Orders</DialogTitle>
         <DialogContent>
@@ -99,7 +102,6 @@ export default function CustomerDashboard({ onLogout }) {
           <Button onClick={() => setOrdersOpen(false)}>Close</Button>
         </DialogActions>
       </Dialog>
-      {/* Profile Modal */}
       <Dialog open={profileOpen} onClose={() => setProfileOpen(false)}>
         <DialogTitle>Profile</DialogTitle>
         <DialogContent>
